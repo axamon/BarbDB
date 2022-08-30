@@ -10,6 +10,7 @@ import (
 // The struct that represents the database.
 type barbDB struct {
 	file os.File
+	keys map[string]bool
 }
 
 // Opens a database at the given path.
@@ -23,6 +24,7 @@ func OpenDB(path string) (*barbDB, error) {
 	// Return the database struct
 	return &barbDB{
 		file: *file,
+		keys: make(map[string]bool),
 	}, nil
 }
 
@@ -34,8 +36,15 @@ func (db barbDB) readFile() ([]string, error) {
 		return nil, readError
 	}
 
+	rows := strings.Split(string(data), "\n")
+
+	for i := 0; i < len(rows); i++ {
+		var k = strings.Split(rows[i], "=")[0]
+		db.keys[k] = true
+	}
+
 	// Split the data into lines and return it
-	return strings.Split(string(data), "\n"), nil
+	return rows, nil
 }
 
 // Returns the value of the given key.
@@ -47,6 +56,11 @@ func (db barbDB) Get(key string) (string, error) {
 	fileContent, fileReadError := db.readFile()
 	if fileReadError != nil {
 		return "", fileReadError
+	}
+
+	// Checks in the db keys map, if absent returns error.
+	if !db.keys[encodedKey] {
+		return "", errors.New("key not found in the keys map")
 	}
 
 	// Loop over the lines in the file
@@ -95,6 +109,10 @@ func (db barbDB) Set(key string, value string) error {
 	if fileWriteError != nil {
 		return fileWriteError
 	}
+
+	// adds key to db keys map.
+	db.keys[encodedKey] = true
+
 	return db.file.Sync()
 }
 
@@ -102,6 +120,9 @@ func (db barbDB) Set(key string, value string) error {
 func (db barbDB) Delete(key string) error {
 	// Base64 encode the key
 	encodedKey := base64.RawStdEncoding.EncodeToString([]byte(key))
+
+	// deletes key from db keys map.
+	delete(db.keys, encodedKey)
 
 	// Read the file
 	fileContent, fileReadError := db.readFile()
