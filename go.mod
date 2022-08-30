@@ -1,3 +1,3 @@
-module github.com/sys-256/BarbDB
+module github.com/axamon/barbdb
 
 go 1.19

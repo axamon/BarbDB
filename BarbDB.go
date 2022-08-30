@@ -1,4 +1,4 @@
-package BarbDB
+package barbdb
 
 import (
 	"encoding/base64" // To encode and decode strings in the database
@@ -7,14 +7,14 @@ import (
 	"strings"         // To split and merge strings
 )
 
-// The struct that represents the database.
-type barbDB struct {
+// Storage struct represents the database.
+type Storage struct {
 	file os.File
 	keys map[string]bool
 }
 
-// Opens a database at the given path.
-func OpenDB(path string) (*barbDB, error) {
+// New opens a database at the given path.
+func New(path string) (*Storage, error) {
 	// Open the file
 	file, fileError := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0600)
 	if fileError != nil {
@@ -22,14 +22,14 @@ func OpenDB(path string) (*barbDB, error) {
 	}
 
 	// Return the database struct
-	return &barbDB{
+	return &Storage{
 		file: *file,
 		keys: make(map[string]bool),
 	}, nil
 }
 
 // Helper function to read the file.
-func (db barbDB) readFile() ([]string, error) {
+func (db Storage) readFile() ([]string, error) {
 	// Read the file
 	data, readError := os.ReadFile(db.file.Name())
 	if readError != nil {
@@ -47,8 +47,8 @@ func (db barbDB) readFile() ([]string, error) {
 	return rows, nil
 }
 
-// Returns the value of the given key.
-func (db barbDB) Get(key string) (string, error) {
+// Get returns the value of the given key.
+func (db Storage) Get(key string) (string, error) {
 	// Base64 encode the key
 	encodedKey := base64.RawStdEncoding.EncodeToString([]byte(key))
 
@@ -80,8 +80,8 @@ func (db barbDB) Get(key string) (string, error) {
 	return "", errors.New("key not found")
 }
 
-// Sets the value of the given key.
-func (db barbDB) Set(key string, value string) error {
+// Set sets the value of the given key.
+func (db Storage) Set(key string, value string) error {
 	// Base64 encode the key and value
 	encodedKey := base64.RawStdEncoding.EncodeToString([]byte(key))
 	encodedValue := base64.RawStdEncoding.EncodeToString([]byte(value))
@@ -116,8 +116,8 @@ func (db barbDB) Set(key string, value string) error {
 	return db.file.Sync()
 }
 
-// Deletes the given key from the database.
-func (db barbDB) Delete(key string) error {
+// Delete deletes the given key from the database.
+func (db Storage) Delete(key string) error {
 	// Base64 encode the key
 	encodedKey := base64.RawStdEncoding.EncodeToString([]byte(key))
 
@@ -147,7 +147,7 @@ func (db barbDB) Delete(key string) error {
 	return db.file.Sync()
 }
 
-// Closes the database.
-func (db barbDB) Close() error {
+// Close closes the database.
+func (db Storage) Close() error {
 	return db.file.Close()
 }
